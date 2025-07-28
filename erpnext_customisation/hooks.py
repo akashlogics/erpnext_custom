@@ -139,13 +139,11 @@ doctype_js = {
 # ---------------
 # Hook on document methods and events
 
-# doc_events = {
-# 	"*": {
-# 		"on_update": "method",
-# 		"on_cancel": "method",
-# 		"on_trash": "method"
-# 	}
-# }
+doc_events = {
+    "Sales Invoice": {
+        "validate": "erpnext_customisation.customization.sales_invoice.validate_customer_items"
+    }
+}
 
 # Scheduled Tasks
 # ---------------
