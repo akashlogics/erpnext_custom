@@ -18,3 +18,4 @@ def get_top_items(customer):
         return []
     
     return items
+
