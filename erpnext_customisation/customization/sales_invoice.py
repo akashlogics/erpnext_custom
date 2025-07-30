@@ -1,23 +1,29 @@
 import frappe
+from frappe import whitelist
 
-def validate_customer_items(doc, method):
-    if not doc.customer:
-        return
+@frappe.whitelist()
+def validate_customer_items(customer, item_code):
 
-    customer_item_entries = frappe.get_all(
-        "Customer Item Detail",
-        filters={"parent": doc.customer},
-        fields=["item_code"]
-    )
+    return frappe.db.exists("Customer Item Detail", {
+        "parent": customer,
+        "item_code": item_code
+    })
 
-    if not customer_item_entries:
-        return
+@frappe.whitelist()
+def add_customer_item(customer, item_code):
 
-    allowed_item_codes = {entry["item_code"] for entry in customer_item_entries}
+    if not frappe.db.exists("Customer Item List", customer):
+        customer_doc = frappe.get_doc({
+            "doctype": "Customer Item List",
+            "customer": customer
+        })
 
-    for item in doc.items:
-        if item.item_code not in allowed_item_codes:
-            frappe.throw(
-                f"Item {item.item_code} is not allowed for customer {doc.customer}. "
-                "Please check Customer Items list."
-            )
+    existing_items = [d.item_code for d in customer_doc.items]
+
+    if item_code not in existing_items:
+        customer_doc.append("items", {
+            "item_code": item_code
+        })
+        customer_doc.save()
+
+    return True
