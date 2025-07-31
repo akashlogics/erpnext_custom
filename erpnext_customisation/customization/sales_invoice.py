@@ -35,4 +35,4 @@ def fetch_customer_items(customer):
         filters={"parent": customer},
         fields=["item_code"]
     )
-    return [d.item_code for d in items]
+    return items
