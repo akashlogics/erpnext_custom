@@ -47,3 +47,39 @@ frappe.ui.form.on("Sales Invoice", {
     }
 });
 
+frappe.ui.form.on('Sales Invoice', {
+    refresh: function(frm) {
+        frm.add_custom_button('Fetch All Items', async function() {
+            if (!frm.doc.customer) {
+                frappe.msgprint('Please select a customer first.');
+                return;
+            }
+
+            const res = await frappe.call({
+                method: "erpnext_customisation.customization.sales_invoice.fetch_customer_items",
+                args: {
+                    customer: frm.doc.customer
+                }
+            });
+
+            if (res.message && res.message.length) {
+                const existing_item_codes = frm.doc.items.map(item => item.item_code);
+
+                res.message.forEach(item_code => {
+                    if (!existing_item_codes.includes(item_code)) {
+                        const child = frm.add_child('items');
+                        child.item_code = item_code;
+                    }
+                    else {
+                        frappe.msgprint(`Item ${item_code} already exists in the invoice.`);
+                    }
+                });
+
+                frm.refresh_field('items');
+                frappe.show_alert('Customer items fetched.');
+            } else {
+                frappe.msgprint("No items found in Customer Item List.");
+            }
+        });
+    }
+});

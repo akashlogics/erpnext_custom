@@ -27,3 +27,12 @@ def add_customer_item(customer, item_code):
         customer_doc.save()
 
     return True
+
+@frappe.whitelist()
+def fetch_customer_items(customer):
+    items = frappe.get_all(
+        "Customer Item Detail",
+        filters={"parent": customer},
+        fields=["item_code"]
+    )
+    return [d.item_code for d in items]
