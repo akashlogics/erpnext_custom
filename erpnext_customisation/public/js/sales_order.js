@@ -21,8 +21,7 @@ frappe.ui.form.on("Sales Order", {
                             existingItem.rate = item.rate;
                         } else {
                             const child = frm.add_child('items');
-                            child.item_code = item.item_code;
-                            child.item_name = item.item_name;
+                            frappe.model.set_value(child.doctype, child.name, "item_code", item.item_code);
                         }
                     });
 
