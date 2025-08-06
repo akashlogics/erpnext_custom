@@ -1,0 +1,19 @@
+{
+ "content": null,
+ "creation": "2025-07-31 16:21:28.867096",
+ "docstatus": 0,
+ "doctype": "Page",
+ "idx": 0,
+ "modified": "2025-07-31 16:53:47.256916",
+ "modified_by": "Administrator",
+ "module": "Erpnext Customisation",
+ "name": "sample-store",
+ "owner": "Administrator",
+ "page_name": "sample-store",
+ "roles": [],
+ "script": null,
+ "standard": "Yes",
+ "style": null,
+ "system_page": 0,
+ "title": "Sample Store"
+}
