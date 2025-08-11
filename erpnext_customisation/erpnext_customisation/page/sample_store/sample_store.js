@@ -76,11 +76,11 @@ function renderCards(products) {
 
         const orderInfo = existingOrdersMap[product.id];
 
-        const statusBadge = orderInfo
+        const statusBadge = orderInfo && orderInfo.status !== "Completed"
             ? `<span class="badge bg-success">Status: ${orderInfo.status}</span>`
             : "";
-
-        const addToStockButton = !orderInfo
+        
+        const addToStockButton = (!orderInfo || orderInfo?.status === "Completed")
             ? `<button class="btn btn-primary btn-sm mt-2 add-to-stock-btn">Add to Stock</button>`
             : "";
         const prBtn = orderInfo && orderInfo.status === "PO created"
@@ -103,11 +103,12 @@ function renderCards(products) {
         
         container.appendChild(card);
 
-        if (!orderInfo) {
+        if (addToStockButton) {
             card.querySelector('.add-to-stock-btn').addEventListener('click', () => {
                 addToStock(product);
             });
-        } else if (orderInfo.status === "PO created") {
+        }
+        if (prBtn) {
             card.querySelector('.create-pr-btn').addEventListener('click', () => {
                 updateStockStatusAndButton(orderInfo.purchase_order);
             });
@@ -159,7 +160,9 @@ function addToStock(product) {
                     item_code: product.id,
                     quantity: values.quantity,
                     item_name: truncateString(product.title,50),
-                    description: truncateString(product.description, 100)
+                    description: truncateString(product.description, 100),
+                    rate: product.price,
+                    image: product.image
                 },
                 callback: function (r) {
                     if (r.message.status === "success") {
@@ -167,6 +170,11 @@ function addToStock(product) {
                             <b>Fake Store Order:</b> <a href="/app/fake-store-order/${r.message.fake_order}" target="_blank">${r.message.fake_order}</a><br>
                             <b>Purchase Order:</b> <a href="/app/purchase-order/${r.message.purchase_order}" target="_blank">${r.message.purchase_order}</a>
                         `);
+                        existingOrdersMap[product.id] = {
+                            status: "PO created",
+                            order_name: r.message.fake_order,
+                            purchase_order: r.message.purchase_order
+                        };
                         fetchProducts();
                         
                     } else {
@@ -187,16 +195,39 @@ function updateStockStatusAndButton(purchase_order_name) {
         },
         callback: function(r) {
             if (r.message && r.message.status === "success") {
-                const productId = r.message.product_id;
-                existingOrdersMap[productId].status = "Purchase Receipt Created";
+                let productId;
+                for (const [itemCode, orderInfo] of Object.entries(existingOrdersMap)) {
+                    if (orderInfo.purchase_order === purchase_order_name) {
+                        productId = itemCode;
+                        break;
+                    }
+                }
+
+                if (productId) {
+                    frappe.db.set_value("Fake Store Order", existingOrdersMap[productId].order_name, {
+                        "purchase_status": "Completed"
+                    }).then(() => {
+                        existingOrdersMap[productId].status = "Completed";
+                        fetchProducts();
+                    }).catch((error) => {
+                        frappe.msgprint("Failed to update status: " + error.message);
+                    });
+                }
+
+                const receiptLink = r.message.purchase_receipt ?
+                    `<a href="/app/purchase-receipt/${r.message.purchase_receipt}" target="_blank">${r.message.purchase_receipt}</a>` :
+                    'Not Available';
                 
                 frappe.msgprint(`
-                    <b>Purchase Receipt:</b> <a href="/app/purchase-receipt/${r.message.purchase_receipt}" target="_blank">${r.message.purchase_receipt}</a><br>
-                    Stock status updated to "Purchase Receipt Created"
+                    <div style="min-width: 300px">
+                        <h5>Purchase Receipt Created</h5>
+                        <p>${receiptLink}</p>
+                        <p>Status: Completed</p>
+                    </div>
                 `);
                 fetchProducts();
             } else {
-                frappe.msgprint("Failed to create purchase receipt: " + (r.message.error || 'Unknown error'));
+                frappe.msgprint("Failed to create purchase receipt.");
             }
         }
     });

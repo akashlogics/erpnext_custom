@@ -24,15 +24,16 @@ def get_top_items(customer):
 @frappe.whitelist()
 def get_existing_fake_orders():
     orders = frappe.get_all("Fake Store Order",
-        fields=["name", "purchase_status", "item_code"],
+        fields=["name", "purchase_status", "item_code", "purchase_order"],
         order_by="creation desc"
     )
     return orders
 
 @frappe.whitelist()
-def create_fake_order(item_code, quantity,item_name,description):
+def create_fake_order(item_code, quantity,item_name,description,rate,image):
     if not frappe.db.exists("Item", item_code):
-        item=frappe.get_doc({
+        item=frappe.new_doc("Item")
+        item.update({
             "doctype": "Item",
             "item_code": item_code,
             "item_name": item_name,
@@ -41,23 +42,28 @@ def create_fake_order(item_code, quantity,item_name,description):
             "item_group": "Products",
             "default_warehouse": "Stores - AD",
             "supplier": "MA Inc.",
-            "description": description
+            "description": description,
+            "image": image,
+            "valuation_rate": rate
         })
         item.insert()
 
-    fake_order = frappe.get_doc({
+    fake_order = frappe.new_doc("Fake Store Order")
+    fake_order.update({
         "doctype": "Fake Store Order",
         "warehouse": "Stores - AD",
         "supplier": "MA Inc.",
         "required_by": nowdate(),
         "purchase_status": "PO created",
         "item_code": item_code,
-        "quantity": quantity
+        "quantity": quantity,
+        "rate": rate
     })
     
     fake_order.insert()
     
-    po = frappe.get_doc({
+    po = frappe.new_doc("Purchase Order")
+    po.update({
         "doctype": "Purchase Order",
         "supplier": fake_order.supplier,
         "schedule_date": nowdate(),
@@ -66,14 +72,16 @@ def create_fake_order(item_code, quantity,item_name,description):
             {
                 "item_code": item_code,
                 "qty": quantity,
-                "schedule_date": nowdate()
+                "schedule_date": nowdate(),
+                "rate": fake_order.rate
             }
         ]
     })
     po.insert()
     po.submit()
 
-
+    frappe.db.set_value("Fake Store Order", fake_order.name, "purchase_order", po.name)
+    
     return {
         "status": "success",
         "fake_order": fake_order.name,
@@ -109,10 +117,15 @@ def add_purchase_receipt(purchase_order):
         postprocess
     )
 
-    pr.insert()
-    pr.submit()
+    try:
+        pr.insert()
+        pr.submit()
+    except Exception as e:
+        frappe.log_error(f"Purchase receipt creation failed: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
     return {
         "status": "success",
-        "purchase_receipt": pr.name
+        "purchase_receipt": pr.name,
+        "purchase_order": purchase_order
     }

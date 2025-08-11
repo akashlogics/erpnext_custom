@@ -10,9 +10,11 @@
   "supplier",
   "item_code",
   "quantity",
+  "rate",
   "column_break_pcit",
   "required_by",
-  "purchase_status"
+  "purchase_status",
+  "purchase_order"
  ],
  "fields": [
   {
@@ -34,6 +36,13 @@
    "options": "PO created\nCompleted"
   },
   {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order",
+   "read_only": 1
+  },
+  {
    "fieldname": "column_break_pcit",
    "fieldtype": "Column Break"
   },
@@ -52,12 +61,17 @@
    "fieldname": "required_by",
    "fieldtype": "Date",
    "label": "Required By"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Int",
+   "label": "Rate"
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2025-08-07 12:35:48.853920",
+ "modified": "2025-08-11 12:03:14.293248",
  "modified_by": "Administrator",
  "module": "Erpnext Customisation",
  "name": "Fake Store Order",
