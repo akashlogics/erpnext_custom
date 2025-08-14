@@ -1,0 +1,98 @@
+{
+ "actions": [],
+ "allow_rename": 1,
+ "autoname": "FOL.###",
+ "creation": "2025-08-05 11:47:12.027432",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "warehouse",
+  "supplier",
+  "item_code",
+  "quantity",
+  "rate",
+  "column_break_pcit",
+  "required_by",
+  "purchase_status",
+  "purchase_order"
+ ],
+ "fields": [
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Warehouse",
+   "options": "Warehouse"
+  },
+  {
+   "fieldname": "supplier",
+   "fieldtype": "Link",
+   "label": "Supplier",
+   "options": "Supplier"
+  },
+  {
+   "fieldname": "purchase_status",
+   "fieldtype": "Select",
+   "label": "Purchase Status",
+   "options": "PO created\nCompleted"
+  },
+  {
+   "fieldname": "purchase_order",
+   "fieldtype": "Link",
+   "label": "Purchase Order",
+   "options": "Purchase Order",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_pcit",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "item_code",
+   "fieldtype": "Link",
+   "label": "Item Code",
+   "options": "Item"
+  },
+  {
+   "fieldname": "quantity",
+   "fieldtype": "Int",
+   "label": "Quantity"
+  },
+  {
+   "fieldname": "required_by",
+   "fieldtype": "Date",
+   "label": "Required By"
+  },
+  {
+   "fieldname": "rate",
+   "fieldtype": "Int",
+   "label": "Rate"
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2025-08-11 12:03:14.293248",
+ "modified_by": "Administrator",
+ "module": "Erpnext Customisation",
+ "name": "Fake Store Order",
+ "naming_rule": "Expression (old style)",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
