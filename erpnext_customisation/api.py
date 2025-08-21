@@ -30,7 +30,11 @@ def get_existing_fake_orders():
     return orders
 
 @frappe.whitelist()
-def create_fake_order(item_code, quantity, item_name, description, rate, image):
+def item_exists(item_code):
+    return bool(frappe.db.exists("Item", item_code))
+
+@frappe.whitelist()
+def add_item(item_code, item_name, description, rate, image):
     if not frappe.db.exists("Item", item_code):
         item = frappe.new_doc("Item")
         item.update({
@@ -47,7 +51,29 @@ def create_fake_order(item_code, quantity, item_name, description, rate, image):
             "valuation_rate": rate
         })
         item.insert()
+        
+        return {
+            "status": "success",
+            "item_code": item_code
+        }
+    else:
+        return {
+            "status": "error",
+            "message": "Item already exists"
+        }
+
+@frappe.whitelist()
+def create_fake_order(item_code, quantity, item_name, description, rate, image):
+    existing_order = frappe.db.get_value("Fake Store Order", 
+        {"item_code": item_code, "purchase_status": ["in", ["PO created", "Draft"]]}, 
+        "name")
     
+    if existing_order:
+        return {
+            "status": "error",
+            "message": f"Purchase Order already exists for item {item_code}"
+        }
+
     fake_order = frappe.new_doc("Fake Store Order")
     fake_order.update({
         "doctype": "Fake Store Order",

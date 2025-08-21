@@ -82,36 +82,58 @@ function renderPage(page) {
     renderPagination();
 }
 
-function renderCards(products) {
+function checkItemExists(itemCode) {
+    return new Promise((resolve) => {
+        frappe.call({
+            method: "erpnext_customisation.api.item_exists",
+            args: { item_code: itemCode },
+            callback: function(r) {
+                resolve(Boolean(r.message)); 
+            }
+        });
+    });
+}
+
+async function renderCards(products) {
     const container = document.getElementById("product-cards");
     container.innerHTML = "";
 
-    products.forEach(product => {
+    for (const product of products) {
         const pid = String(product.id);
+        const itemExists = await checkItemExists(pid);
         const orderInfo = existingOrdersMap[pid];
 
-        const statusBadge = orderInfo && orderInfo.status !== "Completed"
-            ? `<span class="badge badge-warning">Status: ${orderInfo.status}</span>`
-            : "";
+        let actionButton = "";
 
-        const addToStockButton = (!orderInfo || orderInfo?.status === "Completed")
-            ? `<button class="btn btn-primary btn-sm mt-1"
-                onclick="promptAddToStock(
-                    '${product.id}',
-                    '${escapeString(product.title)}',
-                    '${escapeString(product.description)}',
-                    ${product.price},
-                    '${escapeString(product.image)}'
-                )">Add to Stock</button>`
-            : "";
+        if (itemExists) {
+            if (!orderInfo || orderInfo.status === "Completed") {
+                actionButton = `<button class="btn btn-success btn-sm mt-1"
+                    onclick="promptAddToStock('${pid}', 
+                        '${escapeString(product.title)}', 
+                        '${escapeString(product.description)}', 
+                        ${product.price}, 
+                        '${escapeString(product.image)}')">
+                    Create Purchase Order
+                </button>`;
+            } else if (orderInfo && orderInfo.status === "PO created") {
+                actionButton = `<button class="btn btn-success btn-sm mt-1"
+                    onclick="createPurchaseReceipt('${orderInfo.purchase_order}', '${pid}')">
+                    Create Purchase Receipt
+                </button>`;
+            }
+        } else {
+            actionButton = `<button class="btn btn-warning btn-sm mt-1"
+                onclick="addToItems('${pid}', 
+                    '${escapeString(product.title)}', 
+                    '${escapeString(product.description)}', 
+                    ${product.price}, 
+                    '${escapeString(product.image)}')">
+                Add to Items
+            </button>`;
+        }
 
-
-        const prBtn = orderInfo && orderInfo.status === "PO created"
-            ? `<button class="btn btn-success btn-sm mt-1" onclick="createPurchaseReceipt('${orderInfo.purchase_order}', '${pid}')">Create Purchase Receipt</button>`
-            : "";
-
-        const receiptLink = orderInfo && orderInfo.status === "Completed"
-            ? `<div class="mt-2 text-success"><strong>Status: Completed</strong></div>`
+        const statusBadge = orderInfo && orderInfo.status !== "Completed" 
+            ? `<span class="badge badge-warning badge-lg px-3 py-2" style="font-size: 14px;">Status: ${orderInfo.status}</span>` 
             : "";
 
         const card = document.createElement("div");
@@ -121,22 +143,24 @@ function renderCards(products) {
                 <img src="${product.image}" class="card-img-top" style="height: 200px; object-fit: contain;" alt="">
                 <div class="card-body d-flex flex-column">
                     <h5 class="card-title">${product.title}</h5>
-                    <p class="card-text">${truncateString(product.description, 120)}</p>
-                    <p class="card-text"><strong>$${product.price}</strong></p>
-                    <div id="stock-${pid}" class="stock-info mb-2"><span class="text-muted">Stock: Loading...</span></div>
-                    ${statusBadge}
+                    <p class="card-text text-dark">${truncateString(product.description, 130)}</p>
+                    <p class="card-text text-dark"><strong>₹${product.price}</strong></p>
+                    <div id="stock-${pid}" class="stock-info mb-2">
+                        <span class="text-muted"> Stock Status...</span>
+                    </div>
+                    ${statusBadge ? `<div class="text-center mb-2">${statusBadge}</div>` : ''}
                     <div class="mt-auto">
-                        ${addToStockButton}
-                        ${prBtn}
-                        ${receiptLink}
+                        ${actionButton}
                     </div>
                 </div>
             </div>
         `;
         container.appendChild(card);
-
-        fetchStockStatus(pid);
-    });
+        
+        if (itemExists) {
+            fetchStockStatus(pid);
+        }
+    }
 }
 
 function truncateString(str, limit = 120) {
@@ -153,8 +177,8 @@ function fetchStockStatus(itemCode) {
             if (el) {
                 const qty = parseFloat(r.message) || 0;
                 el.innerHTML = qty > 0
-                    ? `<strong class="text-success">Stock: ${qty}</strong>`
-                    : `<strong class="text-danger">Stock: 0</strong>`;
+                    ? `<strong class="text-success">Available Stock: ${qty}</strong>`
+                    : `<strong class="text-danger">Available Stock: 0</strong>`;
             }
         }
     });
@@ -173,10 +197,10 @@ function promptAddToStock(pid, title, desc, price, image) {
         ],
         function(values){
             frappe.confirm(`Add ${values.qty} of "${title}" to stock?`, 
-                () => { // Yes
+                () => {
                     addToStock(pid, title, desc, price, image, values.qty);
                 },
-                () => {} // No
+                () => {}
             );
         },
         'Enter Quantity',
@@ -197,33 +221,39 @@ function addToStock(productId, title, description, price, image, qty) {
         },
         callback: function(r) {
             if (r.message && r.message.status === "success") {
-                const cardElement = document.querySelector(`#stock-${productId}`).closest(".card-body");
-                if (cardElement) {
-                    const btn = cardElement.querySelector("button.btn-primary");
-                    if (btn) btn.remove();
-                    const orderInfoDiv = document.createElement("div");
-                    orderInfoDiv.innerHTML = `
-                        <span class="badge badge-warning mb-2">Status: PO created</span>
-                        <button class="btn btn-success btn-sm mt-1" onclick="createPurchaseReceipt('${r.message.purchase_order}', '${productId}')">
-                            Create Purchase Receipt
-                        </button>
-                    `;
-                    cardElement.querySelector(".mt-auto").prepend(orderInfoDiv);
-                }
-            
-                existingOrdersMap[String(productId)] = {
-                    status: "PO created",
-                    order_name: r.message.fake_order,
-                    purchase_order: r.message.purchase_order
-                };
-            }else {
+                fetchExistingOrders().then(() => renderPage(currentPage));
+            } else {
                 const errorMsg = r.message?.message || "Failed to create order";
                 frappe.msgprint(`Order Failed: ${errorMsg}`);
-                fetchExistingOrders().then(() => renderPage(currentPage));
             }
         },
         freeze: true,
         freeze_message: __("Creating Purchase Order...")
+    });
+}
+
+function addToItems(productId, title, description, price, image) {
+    frappe.call({
+        method: "erpnext_customisation.api.add_item",
+        args: {
+            item_code: String(productId),
+            item_name: truncateString(title, 30),
+            description: description,
+            rate: price,
+            image: image
+        },
+        callback: function(r) {
+            if (r.message && r.message.status === "success") {
+                frappe.msgprint({
+                    title: __('Item Created'),
+                    indicator: 'green',
+                    message: `Item ${r.message.item_code} created successfully!`
+                });
+                fetchExistingOrders().then(() => renderPage(currentPage));
+            } else {
+                frappe.msgprint("Failed to create item.");
+            }
+        }
     });
 }
 
@@ -234,7 +264,7 @@ function createPurchaseReceipt(purchaseOrder, itemCode) {
         callback: function(r) {
             if (r.message && r.message.status === "success") {
                 frappe.msgprint(`Purchase Receipt ${r.message.purchase_receipt} created successfully!`);
-                // Update status to Completed
+                
                 frappe.call({
                     method: "frappe.client.set_value",
                     args: {
@@ -283,8 +313,4 @@ function changePage(page) {
         currentPage = page;
         renderPage(currentPage);
     }
-}
-
-function escapeQuotes(str) {
-    return str ? str.replace(/'/g, "\\'").replace(/"/g, '\\"') : '';
 }
