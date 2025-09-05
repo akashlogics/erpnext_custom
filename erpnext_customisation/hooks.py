@@ -143,9 +143,22 @@ doctype_js = {
     "Sales Invoice": "public/js/sales_invoice.js",
     "Sales Order": "public/js/sales_order.js"
 }
-# Scheduled Tasks
-# ---------------
+# Document Events
+doc_events = {
+    "Sales Order": {
+        "on_submit": "erpnext_customisation.customization.telegram_notifications.send_order_notification"
+    },
+    "Sales Invoice": {
+        "on_submit": "erpnext_customisation.customization.telegram_notifications.send_invoice_notification"
+    }
+}
 
+# Scheduled Events
+scheduler_events = {
+    "daily": [
+        "erpnext_customisation.customization.telegram_notifications.send_payment_reminders"
+    ]
+}
 # scheduler_events = {
 # 	"all": [
 # 		"erpnext_customisation.tasks.all"
