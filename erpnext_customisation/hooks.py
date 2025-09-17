@@ -146,17 +146,22 @@ doctype_js = {
 # Document Events
 doc_events = {
     "Sales Order": {
-        "on_submit": "erpnext_customisation.customization.telegram_notifications.send_order_notification"
+        "on_submit": "erpnext_customisation.customization.telegram.telegram_notifications.send_order_notification"
     },
     "Sales Invoice": {
-        "on_submit": "erpnext_customisation.customization.telegram_notifications.send_invoice_notification"
+        "on_submit": "erpnext_customisation.customization.telegram.telegram_notifications.send_invoice_notification"
     }
 }
+
+# webhook route
+website_route_rules = [
+    {"from_route": "/api/telegram/webhook", "to_route": "webhook"},
+]
 
 # Scheduled Events
 scheduler_events = {
     "daily": [
-        "erpnext_customisation.customization.telegram_notifications.send_payment_reminders"
+        "erpnext_customisation.customization.telegram.telegram_notifications.send_payment_reminders"
     ]
 }
 # scheduler_events = {

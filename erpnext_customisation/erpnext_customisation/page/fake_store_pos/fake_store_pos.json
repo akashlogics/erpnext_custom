@@ -4,7 +4,7 @@
  "docstatus": 0,
  "doctype": "Page",
  "idx": 0,
- "modified": "2025-08-18 11:51:11.883019",
+ "modified": "2025-09-15 15:40:07.016009",
  "modified_by": "Administrator",
  "module": "Erpnext Customisation",
  "name": "fake-store-pos",
@@ -14,5 +14,6 @@
  "script": null,
  "standard": "Yes",
  "style": null,
- "system_page": 0
+ "system_page": 0,
+ "title": "Fake Store POS"
 }
